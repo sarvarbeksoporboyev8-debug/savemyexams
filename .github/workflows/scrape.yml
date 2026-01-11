@@ -2,6 +2,12 @@ name: Scrape SaveMyExams
 
 on:
   workflow_dispatch:  # Manual trigger
+  push:
+    branches:
+      - main
+    paths:
+      - 'savemyexams_scraper.py'
+      - '.github/workflows/scrape.yml'
   schedule:
     - cron: '0 0 * * 0'  # Weekly on Sunday at midnight (optional)
 
