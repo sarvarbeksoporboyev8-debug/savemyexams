@@ -1,0 +1,71 @@
+================================================================================
+SaveMyExams Scraper - QUICK START
+================================================================================
+
+STEP 1: Setup (One Time Only)
+------------------------------
+Linux/Mac:  ./setup.sh
+Windows:    setup.bat
+
+This installs all dependencies including Playwright browser.
+
+
+STEP 2: Run the Scraper
+------------------------
+python scrape.py
+
+That's it! The scraper will:
+- Download exam questions from savemyexams.co.uk
+- Extract all figures/diagrams
+- Save everything to JSON + images folder
+
+
+STEP 3: View Results
+---------------------
+python view_questions.py --stats
+
+Check the output:
+- savemyexams_questions.json  (all questions with metadata)
+- images/                      (all question figures/diagrams)
+
+
+CONFIGURATION
+-------------
+To scrape more questions, edit savemyexams_scraper.py:
+
+DEFAULT_MAX_SUBJECTS = 1              # Change to 5 for more subjects
+DEFAULT_MAX_TOPICS_PER_SUBJECT = 2    # Change to 10 for more topics
+DEFAULT_MAX_QUESTIONS_PER_TOPIC = 2   # Change to 5 for more questions
+
+
+IMAGE MATCHING
+--------------
+Images are named with question IDs:
+
+Question ID:  gcse_biology_aqa_18_..._2
+Image file:   gcse_biology_aqa_18_..._2_fig1.png
+
+Easy to match!
+
+
+TROUBLESHOOTING
+---------------
+Error: "No module named playwright"
+Solution: Use "python scrape.py" instead of running the scraper directly
+
+Error: "Virtual environment not found"
+Solution: Run setup first (./setup.sh or setup.bat)
+
+
+MORE INFO
+---------
+README.md  - Full documentation
+USAGE.md   - Detailed usage guide
+
+
+SUPPORT
+-------
+All dependencies are included in the virtual environment.
+No need to install anything globally!
+
+================================================================================
