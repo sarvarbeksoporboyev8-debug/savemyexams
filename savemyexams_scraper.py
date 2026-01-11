@@ -154,26 +154,85 @@ class SaveMyExamsScraper:
     
     async def download_image(self, image_url: str, question_id: str, image_index: int) -> Optional[str]:
         """Download an image and save it with a meaningful filename"""
+        import base64
+        from urllib.parse import unquote
+        
         try:
-            # Create filename: questionid_imageN.ext
-            ext = image_url.split('.')[-1].split('?')[0]  # Get extension, remove query params
-            if ext not in ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp']:
-                ext = 'png'  # Default extension
+            # Handle data URIs (inline images)
+            if image_url.startswith('data:'):
+                # Extract mime type and data
+                # Format: data:image/svg+xml;charset=utf8,<data>
+                # or: data:image/png;base64,<base64data>
+                
+                if ';base64,' in image_url:
+                    # Base64 encoded
+                    mime_part, data_part = image_url.split(';base64,', 1)
+                    mime_type = mime_part.split(':')[1]
+                    
+                    # Determine extension from mime type
+                    ext_map = {
+                        'image/png': 'png',
+                        'image/jpeg': 'jpg',
+                        'image/jpg': 'jpg',
+                        'image/gif': 'gif',
+                        'image/svg+xml': 'svg',
+                        'image/webp': 'webp'
+                    }
+                    ext = ext_map.get(mime_type, 'png')
+                    
+                    filename = f"{question_id}_fig{image_index}.{ext}"
+                    filepath = self.images_folder / filename
+                    
+                    # Decode and save
+                    image_data = base64.b64decode(data_part)
+                    with open(filepath, 'wb') as f:
+                        f.write(image_data)
+                    return filename
+                    
+                elif ';charset=' in image_url:
+                    # URL-encoded SVG
+                    mime_part, data_part = image_url.split(',', 1)
+                    
+                    filename = f"{question_id}_fig{image_index}.svg"
+                    filepath = self.images_folder / filename
+                    
+                    # Decode URL encoding and save
+                    svg_data = unquote(data_part)
+                    with open(filepath, 'w', encoding='utf-8') as f:
+                        f.write(svg_data)
+                    return filename
+                else:
+                    # Plain data URI
+                    _, data_part = image_url.split(',', 1)
+                    filename = f"{question_id}_fig{image_index}.svg"
+                    filepath = self.images_folder / filename
+                    
+                    with open(filepath, 'w', encoding='utf-8') as f:
+                        f.write(data_part)
+                    return filename
             
-            filename = f"{question_id}_fig{image_index}.{ext}"
-            filepath = self.images_folder / filename
-            
-            # Download image
-            async with aiohttp.ClientSession() as session:
-                async with session.get(image_url, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                    if response.status == 200:
-                        content = await response.read()
-                        with open(filepath, 'wb') as f:
-                            f.write(content)
-                        return filename
-            return None
+            # Regular URL - download from server
+            else:
+                # Create filename: questionid_imageN.ext
+                ext = image_url.split('.')[-1].split('?')[0]  # Get extension, remove query params
+                if ext not in ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp']:
+                    ext = 'png'  # Default extension
+                
+                filename = f"{question_id}_fig{image_index}.{ext}"
+                filepath = self.images_folder / filename
+                
+                # Download image
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(image_url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                        if response.status == 200:
+                            content = await response.read()
+                            with open(filepath, 'wb') as f:
+                                f.write(content)
+                            return filename
+                return None
+                
         except Exception as e:
-            print(f"    Warning: Failed to download image {image_url}: {e}")
+            print(f"    Warning: Failed to download image: {str(e)[:100]}")
             return None
     
     async def close(self):
