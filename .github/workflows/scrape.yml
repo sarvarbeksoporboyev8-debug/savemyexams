@@ -1,0 +1,106 @@
+name: Scrape SaveMyExams
+
+on:
+  workflow_dispatch:  # Manual trigger
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight (optional)
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 hours max
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Install Playwright browsers
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
+      
+      - name: Run scraper
+        run: |
+          python savemyexams_scraper.py
+        env:
+          PYTHONUNBUFFERED: 1
+      
+      - name: Check output
+        run: |
+          echo "=== Scraping Results ==="
+          if [ -f savemyexams_questions.json ]; then
+            echo "✅ JSON file created"
+            ls -lh savemyexams_questions.json
+            echo ""
+            echo "Questions scraped:"
+            python -c "import json; data=json.load(open('savemyexams_questions.json')); print(f\"  Total: {data['metadata']['total_questions']}\"); print(f\"  With images: {data['metadata']['questions_with_images']}\"); print(f\"  Total images: {data['metadata']['total_images']}\")"
+          else
+            echo "❌ JSON file not found"
+            exit 1
+          fi
+          
+          if [ -d images ]; then
+            echo ""
+            echo "✅ Images folder created"
+            echo "  Total files: $(ls images/ | wc -l)"
+            echo "  Total size: $(du -sh images/ | cut -f1)"
+          else
+            echo "❌ Images folder not found"
+          fi
+      
+      - name: Create archive
+        run: |
+          echo "Creating archive..."
+          tar -czf savemyexams-data.tar.gz savemyexams_questions.json images/
+          ls -lh savemyexams-data.tar.gz
+      
+      - name: Upload JSON artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: savemyexams-json
+          path: savemyexams_questions.json
+          retention-days: 90
+      
+      - name: Upload images artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: savemyexams-images
+          path: images/
+          retention-days: 90
+      
+      - name: Upload complete archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: savemyexams-complete
+          path: savemyexams-data.tar.gz
+          retention-days: 90
+      
+      - name: Summary
+        run: |
+          echo "## 🎉 Scraping Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Statistics" >> $GITHUB_STEP_SUMMARY
+          python -c "
+          import json
+          data = json.load(open('savemyexams_questions.json'))
+          print(f\"- **Total Questions:** {data['metadata']['total_questions']}\")
+          print(f\"- **Questions with Images:** {data['metadata']['questions_with_images']}\")
+          print(f\"- **Total Images:** {data['metadata']['total_images']}\")
+          print(f\"- **Scrape Date:** {data['metadata']['scrape_date']}\")
+          " >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📥 Download Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "Go to the **Artifacts** section at the bottom of this workflow run to download:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`savemyexams-json\` - Just the JSON file" >> $GITHUB_STEP_SUMMARY
+          echo "- \`savemyexams-images\` - Just the images folder" >> $GITHUB_STEP_SUMMARY
+          echo "- \`savemyexams-complete\` - Everything in one archive" >> $GITHUB_STEP_SUMMARY

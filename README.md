@@ -11,7 +11,28 @@ Scrapes exam questions and answers from savemyexams.co.uk using Playwright brows
 - ✅ **JSON output** - Structured data with metadata and image references
 - ✅ **Configurable** - Easy-to-adjust scraping limits
 
-## Quick Start
+## GitHub Actions (Automated Scraping)
+
+### Run in the Cloud
+
+You can run the scraper automatically on GitHub Actions without installing anything locally!
+
+1. Go to the **Actions** tab in your GitHub repository
+2. Click **"Scrape SaveMyExams"** workflow
+3. Click **"Run workflow"** → **"Run workflow"**
+4. Wait for completion (may take several hours)
+5. Download artifacts from the workflow run page
+
+**Current Configuration:**
+- 25 subjects
+- 100 topics per subject
+- 20 question pages per topic
+
+See [.github/workflows/README.md](.github/workflows/README.md) for details.
+
+---
+
+## Quick Start (Local)
 
 ### Option 1: Simple (Works on all platforms)
 
